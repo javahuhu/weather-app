@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import 'package:weather_app/Core/Themes/background_color.dart';
 import 'package:weather_app/Data/DataSource/weather_datasource.dart';
 import 'package:weather_app/Data/Models/weather_model.dart';
-import 'package:weather_app/Presentation/Bloc/weather_bloc.dart';
-import 'package:weather_app/Presentation/Bloc/weather_event.dart';
 
 class SearchWeatherPage extends StatefulWidget {
   const SearchWeatherPage({super.key});
@@ -93,7 +90,7 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
     if (c.contains('snow')) {
       return Icons.ac_unit_rounded;
     } else if (c.contains('rain') || c.contains('drizzle')) {
-      return isNight ? Icons.nights_stay_rounded : Icons.beach_access_rounded;
+      return isNight ? Icons.thunderstorm_rounded : Icons.beach_access_rounded;
     } else if (c.contains('storm') || c.contains('thunder')) {
       return Icons.thunderstorm_rounded;
     } else if (c.contains('cloud')) {
@@ -755,22 +752,71 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
         SizedBox(
           height: 110.h,
           child: _isLoadingPopular
-              ? Center(
-                  child: Text(
-                    'Loading popular cities...',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+              ? ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  shrinkWrap: true,
+                  itemCount: 4,
+                  padding: EdgeInsets.zero,
+                  separatorBuilder: (_, _) => SizedBox(width: 12.w),
+                  itemBuilder: (context, i) {
+                    return Container(
+                          height: 100.h,
+                          width: 100.w,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 10.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.25),
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 24.w,
+                                height: 24.h,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              Container(
+                                width: 50.w,
+                                height: 10.h,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                              ),
+                              SizedBox(height: 6.h),
+                              Container(
+                                width: 30.w,
+                                height: 8.h,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(8.r),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .shimmer(
+                          duration: 2.seconds,
+                          color: Colors.white.withValues(alpha: 0.4),
+                        )
+                        .fadeIn(duration: 400.ms, delay: (1300 + i * 80).ms)
+                        .slideY(begin: 0.3, end: 0);
+                  },
                 )
               : ListView.separated(
                   scrollDirection: Axis.horizontal,
                   shrinkWrap: true,
                   itemCount: cities.length,
                   padding: EdgeInsets.zero,
-                  separatorBuilder: (_, __) => SizedBox(width: 12.w),
+                  separatorBuilder: (_, _) => SizedBox(width: 12.w),
                   itemBuilder: (context, i) {
                     final name = cities[i];
                     final weather = _popularWeather[name];
@@ -791,8 +837,6 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
                         HapticFeedback.lightImpact();
                         _cityController.text = name;
                         setState(() {});
-                        // If you want to instantly search as well:
-                        // _onSearch();
                       },
                       child:
                           Container(
@@ -848,6 +892,10 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
                               .slideY(begin: 0.5, end: 0)
                               .then()
                               .animate(onPlay: (c) => c.repeat(reverse: true))
+                              .shimmer(
+                                duration: 1.2.ms,
+                                color: Colors.white.withValues(alpha: 0.4),
+                              )
                               .scale(
                                 begin: const Offset(1, 1),
                                 end: const Offset(1.03, 1.03),
