@@ -10,8 +10,8 @@ class WeatherBackground {
     final hour = time.hour;
     final bool isNight = hour <= 5 || hour >= 18;
 
-    final bool isClearOrSlight = cloudiness <= 60; // few clouds → clear-ish
-    final bool isHeavyCloud = cloudiness > 60; // broken/overcast
+    final bool isClearOrSlight = cloudiness <= 60; 
+    final bool isHeavyCloud = cloudiness > 60; 
     final bool isFogLike =
         c.contains('mist') || c.contains('fog') || c.contains('haze');
 

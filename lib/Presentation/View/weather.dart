@@ -544,8 +544,8 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
         child: GridView.builder(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 20.h,
-            crossAxisSpacing: 20.w,
+            mainAxisSpacing: 10.h,
+            crossAxisSpacing: 10.w,
             childAspectRatio: 1,
           ),
           itemCount: weatherMetrics.length,
