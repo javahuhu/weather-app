@@ -3,8 +3,10 @@ class WeatherEntity {
   final String condition;
   final double temperature;
   final String description;
-  final double humidity;
+  final int humidity;
   final double windSpeed;
+  final DateTime localdateTime;
+  final int timzeZOne;
 
   WeatherEntity({
     required this.cityName,
@@ -13,5 +15,7 @@ class WeatherEntity {
     required this.description,
     required this.humidity,
     required this.windSpeed,
+    required this.localdateTime,
+    required this.timzeZOne,
   });
 }
