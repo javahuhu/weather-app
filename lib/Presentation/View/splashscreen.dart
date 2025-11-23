@@ -29,8 +29,8 @@ class _SplashscreenState extends State<Splashscreen> {
         children: [
           Image.asset(
             'assets/splashscreen/splashscreen.png',
-            width: 1.sw,
-            height: 1.sh,
+            width: double.infinity,
+            height: double.infinity,
             fit: BoxFit.cover,
           ),
 
