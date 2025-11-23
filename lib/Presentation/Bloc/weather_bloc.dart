@@ -21,7 +21,11 @@ class WeatherBloc extends Bloc<WeatherEvent, WeatherState> {
         cityName: event.cityName,
       );
 
-      emit(WeatherLoaded(weather: weather));
+      final hourlyweather = await repository.getHourlyForecast(
+        cityName: event.cityName,
+      );
+
+      emit(WeatherLoaded(weather: weather, hourly: hourlyweather));
     } catch (e) {
       emit(WeatherError(message: e.toString()));
     }

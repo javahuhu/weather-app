@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:weather_app/Domain/Entities/hourly_weather_entity.dart';
 import 'package:weather_app/Domain/Entities/weather_entity.dart';
 
 abstract class WeatherState extends Equatable {
@@ -13,13 +14,13 @@ class WeatherInitial extends WeatherState {}
 class WeatherLoading extends WeatherState {}
 
 class WeatherLoaded extends WeatherState {
-  final WeatherEntity
-  weather; 
+  final WeatherEntity weather;
+  final List<HourlyWeatherEntity> hourly;
 
-  const WeatherLoaded({required this.weather});
+  const WeatherLoaded({required this.weather, required this.hourly});
 
   @override
-  List<Object?> get props => [weather];
+  List<Object?> get props => [weather, hourly];
 }
 
 class WeatherError extends WeatherState {

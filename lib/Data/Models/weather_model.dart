@@ -8,8 +8,10 @@ class WeatherModel extends WeatherEntity {
     required super.description,
     required super.humidity,
     required super.windSpeed,
+    required super.visibility,
     required super.localdateTime,
     required super.timzeZOne,
+    required super.cloudiness,
   });
 
   factory WeatherModel.fromJson(Map<String, dynamic> json) {
@@ -29,8 +31,12 @@ class WeatherModel extends WeatherEntity {
       description: json['weather'][0]['description'] as String,
       humidity: (json['main']['humidity'] as num).toInt(),
       windSpeed: (json['wind']['speed'] as num).toDouble(),
+      visibility: (json['visibility'] as num).toInt(),
       localdateTime: localTime,
       timzeZOne: timeZone,
+      cloudiness: (json['clouds']['all'] as num).toInt(),
     );
+
+    
   }
 }
