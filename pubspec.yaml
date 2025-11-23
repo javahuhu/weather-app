@@ -39,6 +39,10 @@ dependencies:
   lottie: ^3.3.2
   go_router: ^17.0.0
   flutter_animate: ^4.5.2
+  google_fonts: ^6.3.2
+  http: ^1.6.0
+  flutter_dotenv: ^6.0.0
+  equatable: ^2.0.7
 
 dev_dependencies:
   flutter_test:
@@ -66,8 +70,14 @@ flutter:
   assets:
     - assets/splashscreen/splashscreen.png
     - assets/images/globe.png
+    - assets/images/sunny.png
+    - assets/images/rainy.png
+    - assets/images/cloudy.png
     - assets/splashscreen/loading_dot.json
     - assets/lottie/morning-weather.json
+    - assets/lottie/pin-world.json
+    - assets/lottie/clouds.json
+    - .env
     
 
   # An image asset can refer to one or more resolution-specific "variants", see
