@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import 'package:weather_app/Core/Themes/background_color.dart';
 import 'package:weather_app/Data/DataSource/weather_datasource.dart';
+import 'package:weather_app/Data/Models/country_weather_model.dart';
 import 'package:weather_app/Data/Models/weather_model.dart';
 
 class SearchWeatherPage extends StatefulWidget {
@@ -26,6 +27,12 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
 
   final Map<String, WeatherModel> _popularWeather = {};
   bool _isLoadingPopular = false;
+
+  List<CountryWeatherModel> _searchCity = [];
+  bool _isSearchingCity = false;
+
+  final ScrollController _suggestionScrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +53,7 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
   void dispose() {
     _cityController.dispose();
     _focusNode.dispose();
+    _suggestionScrollController.dispose();
     super.dispose();
   }
 
@@ -102,43 +110,104 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
     return isNight ? Icons.dark_mode_rounded : Icons.wb_cloudy_rounded;
   }
 
+  Future<void> _onCityQueryChanged(String query) async {
+    if (query.trim().length < 2) {
+      setState(() {
+        _searchCity = [];
+        _isSearchingCity = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingCity = true;
+    });
+
+    final results = await _weatherDatasource.getCity(query);
+
+    if (!mounted) return;
+
+    setState(() {
+      _searchCity = results;
+      _isSearchingCity = false;
+    });
+  }
+
+  void _onCitySuggestionTap(CountryWeatherModel city) {
+    HapticFeedback.lightImpact();
+    _cityController.text = city.displayCountry;
+
+    setState(() {
+      _searchCity = [];
+      _isSearchingCity = false;
+    });
+    FocusScope.of(context).unfocus();
+    context.push('/weather', extra: city.name);
+  }
+
+  bool get _showSuggestions =>
+      _cityController.text.trim().isNotEmpty &&
+      (_searchCity.isNotEmpty || _isSearchingCity);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Stack(
-          children: [
-            _buildAnimatedBackground(),
-            ..._buildFloatingOrbs(),
-            ..._buildParticles(),
-            SafeArea(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.w),
-                  child: Column(
+      body: PopScope(
+        canPop: false,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            setState(() {
+              _searchCity = [];
+              _isSearchingCity = false;
+            });
+          },
+          child: Stack(
+            children: [
+              _buildAnimatedBackground(),
+              ..._buildFloatingOrbs(),
+              ..._buildParticles(),
+              SafeArea(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Stack(
                     children: [
-                      SizedBox(height: 20.h),
-                      _buildHeader(),
-                      SizedBox(height: 40.h),
-                      _buildGlobeAnimation(),
-                      SizedBox(height: 25.h),
-                      _buildTitleSection(),
-                      SizedBox(height: 32.h),
-                      _buildSearchSection(),
-                      SizedBox(height: 24.h),
-                      _buildSearchButton(),
-                      SizedBox(height: 32.h),
-                      _buildQuickCities(),
-                      SizedBox(height: 40.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: Column(
+                          children: [
+                            SizedBox(height: 20.h),
+                            _buildHeader(),
+                            SizedBox(height: 40.h),
+                            _buildGlobeAnimation(),
+                            SizedBox(height: 25.h),
+                            _buildTitleSection(),
+                            SizedBox(height: 32.h),
+                            _buildSearchSection(),
+                            SizedBox(height: 24.h),
+                            _buildSearchButton(),
+                            SizedBox(height: 32.h),
+                            _buildQuickCities(),
+                            SizedBox(height: 40.h),
+                          ],
+                        ),
+                      ),
+
+                      if (_showSuggestions)
+                        Positioned(
+                          left: 24.w,
+                          right: 24.w,
+                          top: 590.h,
+                          child: _buildFloatingCitySuggestions(),
+                        ),
                     ],
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -601,7 +670,10 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
                   vertical: 18.h,
                 ),
               ),
-              onChanged: (_) => setState(() {}),
+              onChanged: (value) {
+                setState(() {});
+                _onCityQueryChanged(value);
+              },
               onSubmitted: (_) => _onSearch(),
             ),
           ),
@@ -609,6 +681,129 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
         .animate()
         .fadeIn(duration: 800.ms, delay: 900.ms)
         .slideY(begin: 0.3, end: 0);
+  }
+
+  Widget _buildFloatingCitySuggestions() {
+    if (_isSearchingCity) {
+      return Container(
+        margin: EdgeInsets.symmetric(horizontal: 4.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(
+              color: darkOrange.withValues(alpha: 0.25),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 18.w,
+              height: 18.h,
+              child: const CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10.w),
+            Text(
+              "Searching cities...",
+              style: TextStyle(
+                color: darkText.withValues(alpha: 0.7),
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_searchCity.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 4.w),
+      padding: EdgeInsets.symmetric(vertical: 6.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: darkOrange.withValues(alpha: 0.25),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 5.h),
+        child: Scrollbar(
+          controller: _suggestionScrollController,
+          thumbVisibility: true,
+          radius: Radius.circular(20.r),
+          thickness: 5.w,
+          child: ListView.separated(
+            controller: _suggestionScrollController,
+            shrinkWrap: true,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _searchCity.length,
+            separatorBuilder: (_, _) =>
+                Divider(color: Colors.white.withValues(alpha: 0.5), height: 1),
+            itemBuilder: (context, index) {
+              final city = _searchCity[index];
+              return InkWell(
+                onTap: () => _onCitySuggestionTap(city),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 8.h,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_rounded,
+                        size: 20.sp,
+                        color: darkOrange.withValues(alpha: 0.9),
+                      ),
+                      SizedBox(width: 10.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              city.name,
+                              style: TextStyle(
+                                color: darkText,
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              city.displayCountry,
+                              style: TextStyle(
+                                color: darkText.withValues(alpha: 0.6),
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSearchButton() {
@@ -835,9 +1030,17 @@ class _SearchWeatherPageState extends State<SearchWeatherPage>
                     return GestureDetector(
                       onTap: () {
                         HapticFeedback.lightImpact();
+
                         _cityController.text = name;
-                        setState(() {});
+
+                        setState(() {
+                          _searchCity = [];
+                          _isSearchingCity = false;
+                        });
+
+                        FocusScope.of(context).unfocus();
                       },
+
                       child:
                           Container(
                                 height: 100.h,
