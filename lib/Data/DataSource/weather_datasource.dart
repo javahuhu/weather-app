@@ -1,4 +1,5 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:weather_app/Data/Models/country_weather_model.dart';
 import 'package:weather_app/Data/Models/hourly_weather_model.dart';
 import 'package:weather_app/Data/Models/weather_model.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +9,7 @@ class WeatherDatasource {
   final String baseUrl = "https://api.openweathermap.org/data/2.5/weather";
   final String baseUrlForecast =
       "https://api.openweathermap.org/data/2.5/forecast";
+  final String geoBaseUrl = "https://api.openweathermap.org/geo/1.0/direct";
   final String apiKey = dotenv.env['OPENWEATHER_API_KEY'] ?? '';
 
   Future<WeatherModel> getWeather(String cityName) async {
@@ -15,7 +17,6 @@ class WeatherDatasource {
 
     try {
       final response = await http.get(uri);
-      print(response.body);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return WeatherModel.fromJson(data);
@@ -61,6 +62,27 @@ class WeatherDatasource {
       }
     } catch (e) {
       throw Exception("Error fetching forecast data: $e");
+    }
+  }
+
+  Future<List<CountryWeatherModel>> getCity(String query) async {
+    if (query.trim().isEmpty) return [];
+
+    final uri = Uri.parse("$geoBaseUrl?q=$query&limit=20&appid=$apiKey");
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body) as List;
+        return data
+            .map((e) => CountryWeatherModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } else {
+        throw Exception("Failed to search cities: ${response.statusCode}");
+      }
+    } catch (e) {
+      return [];
     }
   }
 }
