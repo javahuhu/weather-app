@@ -14,7 +14,7 @@ class WeatherDatasource {
 
   Future<WeatherModel> getWeather(String cityName) async {
     final uri = Uri.parse("$baseUrl?q=$cityName&appid=$apiKey&units=metric");
-
+    
     try {
       final response = await http.get(uri);
       if (response.statusCode == 200) {
@@ -26,7 +26,7 @@ class WeatherDatasource {
         throw Exception("Failed to load weather data");
       }
     } catch (e) {
-      throw Exception("Error fetching weather data: $e");
+      throw Exception("Error fetching weather data");
     }
   }
 
@@ -58,10 +58,10 @@ class WeatherDatasource {
             )
             .toList();
       } else {
-        throw Exception("Failed to load forecast data: ${response.statusCode}");
+        throw Exception("Failed to load forecast data");
       }
     } catch (e) {
-      throw Exception("Error fetching forecast data: $e");
+      throw Exception("Error fetching forecast data");
     }
   }
 
@@ -79,7 +79,7 @@ class WeatherDatasource {
             .map((e) => CountryWeatherModel.fromJson(e as Map<String, dynamic>))
             .toList();
       } else {
-        throw Exception("Failed to search cities: ${response.statusCode}");
+        throw Exception("Failed to search cities");
       }
     } catch (e) {
       return [];
