@@ -11,6 +11,7 @@ import 'package:weather_app/Presentation/Bloc/weather_state.dart';
 import 'package:weather_app/Presentation/Utils/condition_background.dart';
 import 'package:weather_app/Presentation/Utils/condition_decoration.dart';
 import 'package:weather_app/Presentation/Utils/condition_title.dart';
+import 'package:shimmer/shimmer.dart';
 
 class WeatherPageScreen extends StatefulWidget {
   final String cityName;
@@ -24,6 +25,10 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
   bool _hasScheduledErrorPop = false;
+
+  DateTime? _loadingStart;
+  bool _showSkeleton = true;
+  bool _hasScheduledSkeletonEnd = false;
 
   @override
   void initState() {
@@ -63,7 +68,6 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
       return 'assets/images/sunny.png';
     }
 
-    // fallback
     return 'assets/images/cloudy.png';
   }
 
@@ -73,39 +77,15 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
       body: BlocBuilder<WeatherBloc, WeatherState>(
         builder: (context, state) {
           if (state is WeatherLoading || state is WeatherInitial) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is WeatherLoaded) {
-            final weather = state.weather;
-            final hourlyForecast = state.hourly;
-            return Stack(
-              children: [
-                _buildBackgroundGradient(
-                  weather.condition,
-                  weather.localdateTime,
-                  weather.cloudiness,
-                ),
-                WeatherDecoration.buildConditionDecoration(
-                  weather.condition,
-                  weather.localdateTime,
-                  weather.cloudiness,
-                ),
-                _buildBlurOverlay(),
-                _buildCloudsAnimation(),
-                _buildScrollableContent(
-                  weather.condition,
-                  weather.cityName,
-                  weather.temperature,
-                  weather.humidity,
-                  weather.windSpeed,
-                  weather.visibility,
-                  weather.localdateTime,
-                  weather.timzeZOne,
-                  weather.cloudiness,
-                  hourlyForecast,
-                ),
-              ],
-            );
+            _loadingStart ??= DateTime.now();
+            _showSkeleton = true;
+            _hasScheduledSkeletonEnd = false;
+            return _buildLoadingSkeleton(null, null, null);
           } else if (state is WeatherError) {
+            _loadingStart = null;
+            _showSkeleton = true;
+            _hasScheduledSkeletonEnd = false;
+
             if (!_hasScheduledErrorPop) {
               _hasScheduledErrorPop = true;
 
@@ -119,7 +99,6 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
             }
 
             return Scaffold(
-              
               body: Stack(
                 children: [
                   Container(
@@ -127,11 +106,15 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [lightOrange, mediumOrange, primaryOrange, darkOrange],
+                        colors: [
+                          lightOrange,
+                          mediumOrange,
+                          primaryOrange,
+                          darkOrange,
+                        ],
                       ),
                     ),
                   ),
-
                   Align(
                     alignment: Alignment.topCenter,
                     child: Padding(
@@ -163,7 +146,6 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
                                   Colors.white.withValues(alpha: 0.06),
                                 ],
                               ),
-                             
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -186,7 +168,7 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
                                     state.message.replaceFirst(
                                       'Exception: ',
                                       '',
-                                    ), // cleaner
+                                    ),
                                     style: GoogleFonts.poppins(
                                       fontSize: 16.sp,
                                       color: Colors.white,
@@ -205,11 +187,251 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
                 ],
               ),
             );
+          } else if (state is WeatherLoaded) {
+            final weather = state.weather;
+            final hourlyForecast = state.hourly;
+
+            if (_loadingStart == null) {
+              _showSkeleton = false;
+            } else if (_showSkeleton) {
+              final elapsed = DateTime.now().difference(_loadingStart!);
+              const minDuration = Duration(seconds: 3);
+
+              if (elapsed >= minDuration) {
+                _showSkeleton = false;
+              } else if (!_hasScheduledSkeletonEnd) {
+                _hasScheduledSkeletonEnd = true;
+                final remaining = minDuration - elapsed;
+                Future.delayed(remaining, () {
+                  if (!mounted) return;
+                  setState(() {
+                    _showSkeleton = false;
+                  });
+                });
+              }
+            }
+
+            if (_showSkeleton) {
+              return _buildLoadingSkeleton(
+                weather.condition,
+                weather.localdateTime,
+                weather.cloudiness,
+              );
+            }
+
+            _loadingStart = null;
+            _hasScheduledSkeletonEnd = false;
+
+            return Stack(
+              children: [
+                _buildBackgroundGradient(
+                  weather.condition,
+                  weather.localdateTime,
+                  weather.cloudiness,
+                ),
+                WeatherDecoration.buildConditionDecoration(
+                  weather.condition,
+                  weather.localdateTime,
+                  weather.cloudiness,
+                ),
+                _buildBlurOverlay(),
+                _buildCloudsAnimation(),
+                _buildScrollableContent(
+                  weather.condition,
+                  weather.cityName,
+                  weather.temperature,
+                  weather.humidity,
+                  weather.windSpeed,
+                  weather.visibility,
+                  weather.localdateTime,
+                  weather.timzeZOne,
+                  weather.cloudiness,
+                  hourlyForecast,
+                ),
+              ],
+            );
           } else {
             return const Center(child: Text("Unknown state"));
           }
         },
       ),
+    );
+  }
+
+  Widget shimmerBox({double? width, double? height, BorderRadius? radius}) {
+    return Shimmer.fromColors(
+      baseColor: Colors.white.withValues(alpha: 0.20),
+      highlightColor: Colors.white.withValues(alpha: 0.65),
+      period: const Duration(milliseconds: 1200),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(199, 255, 255, 255),
+          borderRadius: radius ?? BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  Widget _metricTileSkeleton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 0, 0, 0).withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          shimmerBox(
+            width: 40.w,
+            height: 40.w,
+            radius: BorderRadius.circular(20.r),
+          ),
+          SizedBox(height: 10.h),
+          shimmerBox(width: 70.w, height: 16.h),
+          SizedBox(height: 5.h),
+          shimmerBox(width: 60.w, height: 18.h),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingSkeleton(
+    String? condition,
+    DateTime? datetime,
+    int? cloudiness,
+  ) {
+    return Stack(
+      children: [
+        if (condition != null && datetime != null && cloudiness != null) ...[
+          _buildBackgroundGradient(condition, datetime, cloudiness),
+          WeatherDecoration.buildConditionDecoration(
+            condition,
+            datetime,
+            cloudiness,
+          ),
+        ] else ...[
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [lightOrange, mediumOrange, primaryOrange, darkOrange],
+              ),
+            ),
+          ),
+        ],
+
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: Colors.black.withValues(alpha: 0.05)),
+          ),
+        ),
+
+        SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 50.h),
+
+                shimmerBox(width: 80.w, height: 22.h),
+                SizedBox(height: 8.h),
+
+                shimmerBox(width: 180.w, height: 45.h),
+                SizedBox(height: 16.h),
+
+                shimmerBox(width: 120.w, height: 18.h),
+                SizedBox(height: 60.h),
+
+                Center(
+                  child: shimmerBox(
+                    width: 140.w,
+                    height: 80.h,
+                    radius: BorderRadius.circular(40),
+                  ),
+                ),
+                SizedBox(height: 20.h),
+
+                Center(
+                  child: shimmerBox(width: 160.w, height: 24.h),
+                ),
+                SizedBox(height: 40.h),
+
+                Container(
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(
+                      255,
+                      0,
+                      0,
+                      0,
+                    ).withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 8.h),
+                      SizedBox(
+                        height: 120.h,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          separatorBuilder: (_, _) => SizedBox(width: 25.w),
+                          itemCount: 6,
+                          itemBuilder: (context, index) {
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                shimmerBox(width: 50.w, height: 16.h),
+                                SizedBox(height: 10.h),
+
+                                shimmerBox(
+                                  width: 40.w,
+                                  height: 40.w,
+                                  radius: BorderRadius.circular(20.r),
+                                ),
+                                SizedBox(height: 10.h),
+
+                                shimmerBox(width: 30.w, height: 16.h),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 20.h),
+
+                SizedBox(
+                  height: 370.h,
+                  child: GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 10.h,
+                      crossAxisSpacing: 10.w,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: 4,
+                    itemBuilder: (context, index) {
+                      return _metricTileSkeleton();
+                    },
+                  ),
+                ),
+                SizedBox(height: 10.h),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -278,7 +500,7 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
           _buildTimeText(localdateTime),
           _buildCityName(cityName),
           _buildHeaderDivider(),
-          _buildDateText(localdateTime),
+          _buildDateText(localdateTime, hourlyForecast),
           _buildTemperature(temperature),
           _buildWeatherDescription(condition, localdateTime, cloudiness),
           _buildHourlyForecastCard(hourlyForecast),
@@ -342,10 +564,17 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
     );
   }
 
-  Widget _buildDateText(DateTime localdateTime) {
+  Widget _buildDateText(
+    DateTime localdateTime,
+    List<HourlyWeatherEntity> hourlyForecast,
+  ) {
     final d = localdateTime.day.toString().padLeft(2, '0');
     final m = localdateTime.month.toString().padLeft(2, '0');
     final y = (localdateTime.year % 100).toString().padLeft(2, '0');
+
+    final hour = localdateTime.hour;
+    final bool isNight = hour <= 5 || hour >= 18;
+
     return Padding(
       padding: EdgeInsets.only(top: 0.h, left: 15.w),
       child: RichText(
@@ -355,12 +584,14 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
               text: "Today ",
               style: GoogleFonts.poppins(
                 fontSize: 18.sp,
-                color: const Color.fromARGB(
-                  255,
-                  68,
-                  68,
-                  68,
-                ).withValues(alpha: 0.5),
+                color: isNight
+                    ? Colors.white.withValues(alpha: 0.7)
+                    : const Color.fromARGB(
+                        255,
+                        68,
+                        68,
+                        68,
+                      ).withValues(alpha: 0.5),
                 height: 1,
               ),
             ),
@@ -368,7 +599,7 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
               text: "$d.$m.$y",
               style: GoogleFonts.poppins(
                 fontSize: 18.sp,
-                color: Colors.white,
+                color: isNight ? Colors.white : Colors.white,
                 height: 1,
                 shadows: [
                   Shadow(
@@ -533,7 +764,7 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
       {
         'icon': Icons.visibility,
         'label': 'Visibility',
-        'value': "${visibility.toStringAsFixed(0)}KM",
+        'value': "$visibility KM",
       },
     ];
 
@@ -542,6 +773,7 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
       child: SizedBox(
         height: 370.h,
         child: GridView.builder(
+          physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             mainAxisSpacing: 10.h,
@@ -563,9 +795,8 @@ class _WeatherPageScreenState extends State<WeatherPageScreen>
                 ).withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(20.r),
               ),
-
               child: Column(
-                mainAxisAlignment: .center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(weather['icon'], color: Colors.white, size: 40.sp),
                   SizedBox(height: 10.h),
