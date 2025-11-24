@@ -33,44 +33,52 @@ class _GetStartedPageState extends State<GetStartedPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            width: 1.sw,
-            height: 1.sh,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [lightOrange, mediumOrange, primaryOrange, darkOrange],
-              ),
-            ),
-          ),
-
-          ..._buildFloatingElements(),
-
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 20.h),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(height: 40.h),
-                    _buildHeroImage(),
-                    SizedBox(height: 40.h),
-                    _buildTitleSection(),
-                    SizedBox(height: 30.h),
-                    _buildFeatureHighlights(),
-                    SizedBox(height: 30.h),
-                    _buildGetStartedButton(),
-                    SizedBox(height: 20.h),
+      body: PopScope(
+        canPop: false,
+        child: Stack(
+          children: [
+            Container(
+              width: 1.sw,
+              height: 1.sh,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    lightOrange,
+                    mediumOrange,
+                    primaryOrange,
+                    darkOrange,
                   ],
                 ),
               ),
             ),
-          ),
-        ],
+
+            ..._buildFloatingElements(),
+
+            SafeArea(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: 20.h),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(height: 40.h),
+                      _buildHeroImage(),
+                      SizedBox(height: 40.h),
+                      _buildTitleSection(),
+                      SizedBox(height: 50.h),
+                      _buildFeatureHighlights(),
+                      SizedBox(height: 30.h),
+                      _buildGetStartedButton(),
+                      SizedBox(height: 20.h),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
