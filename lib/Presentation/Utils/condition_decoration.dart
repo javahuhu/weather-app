@@ -24,7 +24,7 @@ class WeatherDecoration {
     final bool isSnowy =
         c.contains('snow') || c.contains('sleet') || c.contains('flurry');
 
-    // NIGHTTIME DECORATIONS
+  
     if (isNight) {
       if (isSnowy) return _buildSnowyDecoration();
       if (isRainy) return _buildRainyDecoration();
@@ -33,7 +33,7 @@ class WeatherDecoration {
       return _buildClearNightDecoration();
     }
 
-    // DAYTIME DECORATIONS
+  
     if (isSnowy) {
       return _buildSnowyDecoration();
     } else if (isRainy) {
@@ -126,7 +126,7 @@ class WeatherDecoration {
       top: 300.h,
       left: 125.w,
       child: Opacity(
-        opacity: 0.2,
+        opacity: 1,
         child: Image.asset(
           'assets/images/snowy.png',
           height: 200.h,
